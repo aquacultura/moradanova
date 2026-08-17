@@ -2,12 +2,18 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
     <title>Controle de Frequência</title>
+
+    <!-- Biblioteca para leitura de QR Code -->
+    <script src="https://unpkg.com/html5-qrcode"
+            type="text/javascript">
+    </script>
 
     <style>
 
@@ -23,35 +29,49 @@
             max-width: 500px;
             margin: auto;
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 15px;
         }
 
         h1 {
             font-size: 24px;
+            margin-bottom: 5px;
         }
 
-        button {
-            width: 100%;
-            padding: 16px;
-            font-size: 18px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
+        .subtitulo {
+            color: #666;
+            margin-bottom: 20px;
         }
 
-        video {
+        #reader {
             width: 100%;
-            margin-top: 20px;
-            border-radius: 10px;
+            max-width: 500px;
+            margin: auto;
         }
 
         #status {
             margin-top: 20px;
-            font-size: 18px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 17px;
+        }
+
+        .normal {
+            background: #f3f4f6;
+        }
+
+        .sucesso {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .erro {
+            background: #f8d7da;
+            color: #721c24;
         }
 
     </style>
+
 </head>
 
 <body>
@@ -60,58 +80,142 @@
 
     <h1>Controle de Frequência</h1>
 
-    <p>Scanner de QR Code</p>
+    <div class="subtitulo">
+        VIII Semana de Aquicultura
+    </div>
 
-    <button id="iniciar">
-        📷 Iniciar câmera
-    </button>
+    <div id="reader"></div>
 
-    <video id="video"
-           autoplay
-           playsinline>
-    </video>
-
-    <div id="status">
-        Câmera desligada.
+    <div id="status" class="normal">
+        Aponte a câmera para o QR Code do participante.
     </div>
 
 </div>
 
+
 <script>
 
-const botao = document.getElementById("iniciar");
-const video = document.getElementById("video");
-const status = document.getElementById("status");
+let scanner;
+let processando = false;
 
-botao.addEventListener("click", async function () {
 
-    try {
+// Mostra mensagem na tela
+function mostrarStatus(mensagem, classe = "normal") {
 
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: {
-                        ideal: "environment"
-                    }
-                },
-                audio: false
-            });
+    const status =
+        document.getElementById("status");
 
-        video.srcObject = stream;
+    status.innerHTML = mensagem;
 
-        status.textContent =
-            "✓ Câmera funcionando.";
+    status.className = classe;
 
-    } catch (erro) {
+}
 
-        console.error(erro);
 
-        status.textContent =
-            "Não foi possível acessar a câmera.";
+// Quando encontrar um QR Code
+function qrCodeEncontrado(decodedText) {
+
+    if (processando) {
+        return;
+    }
+
+    processando = true;
+
+    mostrarStatus(
+        "QR Code identificado.<br>Registrando presença...",
+        "normal"
+    );
+
+
+    console.log("QR Code:", decodedText);
+
+
+    /*
+     * Os QR Codes atuais contêm uma URL do Apps Script.
+     *
+     * Exemplo:
+     *
+     * https://script.google.com/macros/s/.../exec?t=TOKEN
+     *
+     * Basta abrir essa URL.
+     */
+
+
+    if (
+        decodedText.startsWith("https://script.google.com/")
+    ) {
+
+        window.location.href = decodedText;
+
+        return;
 
     }
 
-});
+
+    // Caso o QR Code contenha somente o Token
+
+    mostrarStatus(
+        "<strong>QR Code inválido.</strong><br>" +
+        "Este QR Code não pertence ao sistema.",
+        "erro"
+    );
+
+    processando = false;
+
+}
+
+
+// Inicia o leitor
+function iniciarScanner() {
+
+    scanner =
+        new Html5Qrcode("reader");
+
+
+    scanner.start(
+
+        {
+            facingMode: "environment"
+        },
+
+        {
+            fps: 10,
+
+            qrbox: {
+                width: 250,
+                height: 250
+            }
+
+        },
+
+        qrCodeEncontrado,
+
+        function(errorMessage) {
+
+            // Erros normais de leitura são ignorados.
+
+        }
+
+    ).catch(function(error) {
+
+        console.error(error);
+
+        mostrarStatus(
+            "<strong>Erro ao iniciar a câmera.</strong><br>" +
+            "Verifique a permissão de câmera.",
+            "erro"
+        );
+
+    });
+
+}
+
+
+// Inicia automaticamente
+window.addEventListener(
+    "load",
+    iniciarScanner
+);
 
 </script>
 
