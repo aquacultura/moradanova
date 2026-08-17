@@ -5,25 +5,29 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Controle de Frequência</title>
 
-    <!-- Biblioteca para leitura de QR Code -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript">
-    </script>
+    <script src="https://unpkg.com/html5-qrcode"
+            type="text/javascript"></script>
 
     <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             background: #f3f4f6;
-            text-align: center;
         }
 
         .container {
-            max-width: 500px;
+            max-width: 550px;
             margin: auto;
             background: white;
             padding: 20px;
@@ -31,13 +35,25 @@
         }
 
         h1 {
+            text-align: center;
             font-size: 24px;
-            margin-bottom: 5px;
+            margin: 5px 0;
         }
 
-        .subtitulo {
+        .evento {
+            text-align: center;
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+
+        .atividade {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 12px;
+            background: #eeeeee;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
         #reader {
@@ -46,15 +62,18 @@
             margin: auto;
         }
 
-        #status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
+        #resultado {
+            margin-top: 15px;
+            padding: 18px;
+            border-radius: 10px;
+            text-align: center;
             font-size: 17px;
+            min-height: 70px;
         }
 
         .normal {
             background: #f3f4f6;
+            color: #333;
         }
 
         .sucesso {
@@ -62,205 +81,450 @@
             color: #155724;
         }
 
+        .aviso {
+            background: #fff3cd;
+            color: #856404;
+        }
+
         .erro {
             background: #f8d7da;
             color: #721c24;
         }
+
+        .contador {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 16px;
+            color: #555;
+        }
+
     </style>
 
 </head>
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <h1>Controle de Frequência</h1>
+    <h1>Controle de Frequência</h1>
 
-        <div class="subtitulo">
-            VIII Semana de Aquicultura
-        </div>
-
-        <div id="reader"></div>
-
-        <div id="status" class="normal">
-            Aponte a câmera para o QR Code do participante.
-        </div>
-
+    <div class="evento">
+        VIII Semana de Aquicultura
     </div>
 
+    <div id="atividade" class="atividade">
+        Carregando atividade...
+    </div>
 
-    <script>
+    <div id="reader"></div>
 
-        let scanner;
-        let processando = false;
+    <div id="resultado" class="normal">
+        Aponte a câmera para o QR Code do participante.
+    </div>
 
+    <div id="contador" class="contador">
+        Presenças nesta sessão: 0
+    </div>
 
-        // Mostra mensagem na tela
-        function mostrarStatus(mensagem, classe = "normal") {
-
-            const status =
-                document.getElementById("status");
-
-            status.innerHTML = mensagem;
-
-            status.className = classe;
-
-        }
+</div>
 
 
-        // Quando encontrar um QR Code
-        function qrCodeEncontrado(decodedText) {
+<script>
 
-            if (processando) {
-                return;
-            }
+let scanner = null;
 
-            processando = true;
+let processando = false;
 
-            mostrarStatus(
-                "QR Code identificado.<br>Registrando presença...",
-                "normal"
-            );
+let totalPresencas = 0;
 
 
-            console.log("QR Code:", decodedText);
+// =====================================================
+// MOSTRAR RESULTADO
+// =====================================================
+
+function mostrarResultado(
+    mensagem,
+    classe = "normal"
+) {
+
+    const elemento =
+        document.getElementById("resultado");
+
+    elemento.innerHTML = mensagem;
+
+    elemento.className = classe;
+
+}
 
 
-            /*
-             * Os QR Codes atuais contêm uma URL do Apps Script.
-             *
-             * Exemplo:
-             *
-             * https://script.google.com/macros/s/.../exec?t=TOKEN
-             *
-             * Basta abrir essa URL.
-             */
+// =====================================================
+// ATUALIZAR CONTADOR
+// =====================================================
+
+function atualizarContador() {
+
+    document.getElementById("contador")
+        .innerText =
+        "Presenças nesta sessão: " +
+        totalPresencas;
+
+}
 
 
-            try {
+// =====================================================
+// PROCESSAR QR CODE
+// =====================================================
 
-                const url = new URL(decodedText);
+async function processarQRCode(decodedText) {
 
-                const token =
-                    url.searchParams.get("t");
+    if (processando) {
+        return;
+    }
 
-                if (!token) {
-
-                    mostrarStatus(
-                        "<strong>QR Code inválido.</strong><br>" +
-                        "Token não encontrado.",
-                        "erro"
-                    );
-
-                    processando = false;
-
-                    return;
-                }
+    processando = true;
 
 
-                // Adiciona o comando para registrar presença
+    // Pausa o scanner durante o processamento
 
-                url.searchParams.set(
-                    "registrar",
-                    "1"
-                );
+    try {
 
+        await scanner.pause(true);
 
-                mostrarStatus(
-                    "Participante identificado.<br>" +
-                    "Registrando presença...",
-                    "normal"
-                );
+    } catch (erro) {
 
+        console.log(
+            "Não foi possível pausar o scanner:",
+            erro
+        );
 
-                // Abre o Apps Script já no modo de registro
-
-                window.location.href =
-                    url.toString();
-
-                return;
+    }
 
 
-            } catch (erro) {
-
-                console.error(erro);
-
-                mostrarStatus(
-                    "<strong>QR Code inválido.</strong>",
-                    "erro"
-                );
-
-                processando = false;
-
-            }
+    mostrarResultado(
+        "QR Code identificado.<br>" +
+        "Registrando presença...",
+        "normal"
+    );
 
 
-            // Caso o QR Code contenha somente o Token
+    try {
 
-            mostrarStatus(
+        const url =
+            new URL(decodedText);
+
+
+        const token =
+            url.searchParams.get("t");
+
+
+        if (!token) {
+
+            mostrarResultado(
                 "<strong>QR Code inválido.</strong><br>" +
-                "Este QR Code não pertence ao sistema.",
+                "Token não encontrado.",
                 "erro"
             );
 
-            processando = false;
+            finalizarLeitura();
 
+            return;
         }
 
 
-        // Inicia o leitor
-        function iniciarScanner() {
+        // Adiciona registrar=1
 
-            scanner =
-                new Html5Qrcode("reader");
-
-
-            scanner.start(
-
-                {
-                    facingMode: "environment"
-                },
-
-                {
-                    fps: 10,
-
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    }
-
-                },
-
-                qrCodeEncontrado,
-
-                function (errorMessage) {
-
-                    // Erros normais de leitura são ignorados.
-
-                }
-
-            ).catch(function (error) {
-
-                console.error(error);
-
-                mostrarStatus(
-                    "<strong>Erro ao iniciar a câmera.</strong><br>" +
-                    "Verifique a permissão de câmera.",
-                    "erro"
-                );
-
-            });
-
-        }
-
-
-        // Inicia automaticamente
-        window.addEventListener(
-            "load",
-            iniciarScanner
+        url.searchParams.set(
+            "registrar",
+            "1"
         );
 
-    </script>
+
+        /*
+         * Faz a requisição para o Apps Script
+         * sem sair da página do scanner.
+         */
+
+        const resposta =
+            await fetch(
+                url.toString(),
+                {
+                    method: "GET",
+                    redirect: "follow"
+                }
+            );
+
+
+        const html =
+            await resposta.text();
+
+
+        /*
+         * Interpreta o resultado retornado
+         * pelo Apps Script.
+         */
+
+        if (
+            html.includes(
+                "PRESENÇA REGISTRADA"
+            )
+        ) {
+
+            totalPresencas++;
+
+            atualizarContador();
+
+
+            mostrarResultado(
+                extrairConteudoResultado(html),
+                "sucesso"
+            );
+
+
+        } else if (
+            html.includes(
+                "Presença já registrada"
+            )
+        ) {
+
+            mostrarResultado(
+                extrairConteudoResultado(html),
+                "aviso"
+            );
+
+
+        } else {
+
+            mostrarResultado(
+                extrairConteudoResultado(html),
+                "erro"
+            );
+
+        }
+
+
+    } catch (erro) {
+
+        console.error(erro);
+
+
+        mostrarResultado(
+            "<strong>Erro ao registrar.</strong><br>" +
+            "Verifique a conexão com a internet.",
+            "erro"
+        );
+
+    }
+
+
+    /*
+     * Aguarda alguns segundos para que a equipe
+     * consiga visualizar o resultado.
+     */
+
+    setTimeout(
+        finalizarLeitura,
+        2500
+    );
+
+}
+
+
+// =====================================================
+// EXTRAI CONTEÚDO DA RESPOSTA
+// =====================================================
+
+function extrairConteudoResultado(html) {
+
+    const parser =
+        new DOMParser();
+
+    const documento =
+        parser.parseFromString(
+            html,
+            "text/html"
+        );
+
+
+    const box =
+        documento.querySelector(".box");
+
+
+    if (box) {
+
+        return box.innerHTML;
+
+    }
+
+
+    const body =
+        documento.body;
+
+
+    if (body) {
+
+        return body.innerHTML;
+
+    }
+
+
+    return html;
+
+}
+
+
+// =====================================================
+// FINALIZA LEITURA
+// =====================================================
+
+async function finalizarLeitura() {
+
+    processando = false;
+
+
+    mostrarResultado(
+        "Aponte a câmera para o próximo participante.",
+        "normal"
+    );
+
+
+    try {
+
+        await scanner.resume();
+
+    } catch (erro) {
+
+        console.log(
+            "Erro ao retomar scanner:",
+            erro
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// INICIAR SCANNER
+// =====================================================
+
+function iniciarScanner() {
+
+    scanner =
+        new Html5Qrcode("reader");
+
+
+    scanner.start(
+
+        {
+            facingMode: "environment"
+        },
+
+        {
+            fps: 10,
+
+            qrbox: {
+                width: 250,
+                height: 250
+            }
+
+        },
+
+        processarQRCode,
+
+        function(errorMessage) {
+
+            // Erros normais de leitura são ignorados.
+
+        }
+
+    ).catch(function(erro) {
+
+        console.error(erro);
+
+
+        mostrarResultado(
+            "<strong>Não foi possível iniciar a câmera.</strong><br>" +
+            "Verifique a permissão de câmera.",
+            "erro"
+        );
+
+    });
+
+}
+
+
+// =====================================================
+// CARREGAR ATIVIDADE
+// =====================================================
+
+function carregarAtividade() {
+
+    /*
+     * Por enquanto, a atividade continua sendo
+     * definida em Configuracao!B2.
+     *
+     * Uma interface para alterar a atividade
+     * será criada posteriormente.
+     */
+
+    const URL_WEB_APP =
+        "https://script.google.com/macros/s/AKfycbxvSpeeFKq6Y7aygyqykuxwwZZGXD9c6EpQeHf-ApJT7BH4r626cGa1CviIgWauwlsg/exec";
+
+
+    fetch(
+        URL_WEB_APP +
+        "?atividade=1"
+    )
+
+    .then(
+        resposta => resposta.text()
+    )
+
+    .then(
+        texto => {
+
+            /*
+             * Por enquanto, não depende desse retorno.
+             * A atividade configurada será exibida
+             * posteriormente por uma API específica.
+             */
+
+            document.getElementById(
+                "atividade"
+            ).innerText =
+                "Atividade atual";
+
+        }
+    )
+
+    .catch(
+        function() {
+
+            document.getElementById(
+                "atividade"
+            ).innerText =
+                "Atividade atual";
+
+        }
+    );
+
+}
+
+
+// =====================================================
+// INICIALIZAÇÃO
+// =====================================================
+
+window.addEventListener(
+    "load",
+    function() {
+
+        iniciarScanner();
+
+    }
+);
+
+</script>
 
 </body>
 
