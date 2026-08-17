@@ -109,7 +109,7 @@
         </div>
 
         <div id="atividade" class="atividade">
-            Carregando atividade...
+            Atividade atual
         </div>
 
         <div id="reader"></div>
@@ -119,7 +119,7 @@
         </div>
 
         <div id="contador" class="contador">
-            Presenças nesta sessão: 0
+            Presenças enviadas nesta sessão: 0
         </div>
 
     </div>
@@ -127,125 +127,243 @@
 
     <script>
 
-        let ultimoEstado = "";
+        let scanner = null;
 
-        function atualizarPainel(dados) {
+        let processando = false;
 
-            const estado = JSON.stringify(dados);
+        let totalPresencas = 0;
 
-            // Não redesenha a tela se nada mudou
-            if (estado === ultimoEstado) {
+
+        // =====================================================
+        // MOSTRAR RESULTADO
+        // =====================================================
+
+        function mostrarResultado(
+            mensagem,
+            classe = "normal"
+        ) {
+
+            const elemento =
+                document.getElementById("resultado");
+
+            elemento.innerHTML = mensagem;
+
+            elemento.className = classe;
+
+        }
+
+
+        // =====================================================
+        // CONTADOR
+        // =====================================================
+
+        function atualizarContador() {
+
+            document.getElementById("contador")
+                .innerText =
+                "Presenças enviadas nesta sessão: " +
+                totalPresencas;
+
+        }
+
+
+        // =====================================================
+        // PROCESSAR QR CODE
+        // =====================================================
+
+        async function processarQRCode(decodedText) {
+
+            if (processando) {
                 return;
             }
 
-            ultimoEstado = estado;
-
-            const status =
-                document.getElementById("status");
-
-            const nome =
-                document.getElementById("nome");
-
-            const id =
-                document.getElementById("id");
-
-            const atividade =
-                document.getElementById("atividade");
-
-            const horario =
-                document.getElementById("horario");
+            processando = true;
 
 
-            nome.innerText =
-                dados.nome || "";
+            try {
 
-            id.innerText =
-                dados.id || "";
+                await scanner.pause(true);
 
-            atividade.innerText =
-                dados.atividade || "";
+            } catch (erro) {
 
-            horario.innerText =
-                dados.dataHora || "";
-
-
-            if (dados.status === "SUCESSO") {
-
-                status.innerText =
-                    "✓ PRESENÇA REGISTRADA";
-
-                status.className =
-                    "status sucesso";
+                console.log("Scanner já pausado.");
 
             }
 
-            else if (dados.status === "DUPLICADO") {
 
-                status.innerText =
-                    "⚠ PRESENÇA JÁ REGISTRADA";
+            mostrarResultado(
+                "QR Code identificado.<br>" +
+                "Registrando presença...",
+                "normal"
+            );
 
-                status.className =
-                    "status duplicado";
+
+            try {
+
+                const url =
+                    new URL(decodedText);
+
+                const token =
+                    url.searchParams.get("t");
+
+
+                if (!token) {
+
+                    mostrarResultado(
+                        "<strong>QR Code inválido.</strong><br>" +
+                        "Token não encontrado.",
+                        "erro"
+                    );
+
+                    finalizarLeitura();
+
+                    return;
+                }
+
+
+                // Informa ao Apps Script que deve registrar
+
+                url.searchParams.set(
+                    "registrar",
+                    "1"
+                );
+
+
+                /*
+                 * Envio silencioso.
+                 *
+                 * O navegador permanece no GitHub Pages.
+                 */
+
+                await fetch(
+                    url.toString(),
+                    {
+                        method: "GET",
+                        mode: "no-cors",
+                        redirect: "follow"
+                    }
+                );
+
+
+                totalPresencas++;
+
+                atualizarContador();
+
+
+                mostrarResultado(
+                    "<strong>✓ PRESENÇA ENVIADA</strong><br><br>" +
+                    "Aguarde a confirmação no monitor.",
+                    "sucesso"
+                );
+
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                mostrarResultado(
+                    "<strong>Erro ao enviar registro.</strong><br>" +
+                    "Verifique a conexão.",
+                    "erro"
+                );
 
             }
 
-            else if (dados.status === "ERRO") {
 
-                status.innerText =
-                    "✕ QR CODE INVÁLIDO";
+            setTimeout(
+                finalizarLeitura,
+                2000
+            );
 
-                status.className =
-                    "status erro";
+        }
 
-            }
 
-            else {
+        // =====================================================
+        // VOLTAR AO SCANNER
+        // =====================================================
 
-                status.innerText =
-                    "AGUARDANDO PARTICIPANTE";
+        async function finalizarLeitura() {
 
-                status.className =
-                    "status aguardando";
+            processando = false;
+
+
+            mostrarResultado(
+                "Aponte a câmera para o próximo participante.",
+                "normal"
+            );
+
+
+            try {
+
+                await scanner.resume();
+
+            } catch (erro) {
+
+                console.error(
+                    "Erro ao retomar scanner:",
+                    erro
+                );
 
             }
 
         }
 
 
-        function consultarPainel() {
+        // =====================================================
+        // INICIAR CÂMERA
+        // =====================================================
 
-            google.script.run
+        function iniciarScanner() {
 
-                .withSuccessHandler(function (dados) {
+            scanner =
+                new Html5Qrcode("reader");
 
-                    console.log(
-                        "Painel recebido:",
-                        dados
-                    );
 
-                    atualizarPainel(dados);
+            scanner.start(
 
-                })
+                {
+                    facingMode: "environment"
+                },
 
-                .withFailureHandler(function (erro) {
+                {
+                    fps: 10,
 
-                    console.error(
-                        "Erro ao consultar painel:",
-                        erro
-                    );
+                    qrbox: {
+                        width: 250,
+                        height: 250
+                    }
+                },
 
-                })
+                processarQRCode,
 
-                .obterPainel();
+                function (errorMessage) {
+
+                    // Erros normais de leitura são ignorados.
+
+                }
+
+            ).catch(function (erro) {
+
+                console.error(erro);
+
+                mostrarResultado(
+                    "<strong>Não foi possível iniciar a câmera.</strong><br>" +
+                    "Verifique a permissão da câmera.",
+                    "erro"
+                );
+
+            });
 
         }
 
 
-        consultarPainel();
+        // =====================================================
+        // INICIALIZAÇÃO
+        // =====================================================
 
-        setInterval(
-            consultarPainel,
-            1000
+        window.addEventListener(
+            "load",
+            iniciarScanner
         );
 
     </script>
