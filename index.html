@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Controle de Frequência</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f3f4f6;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        video {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Controle de Frequência</h1>
+
+    <p>Scanner de QR Code</p>
+
+    <button id="iniciar">
+        📷 Iniciar câmera
+    </button>
+
+    <video id="video"
+           autoplay
+           playsinline>
+    </video>
+
+    <div id="status">
+        Câmera desligada.
+    </div>
+
+</div>
+
+<script>
+
+const botao = document.getElementById("iniciar");
+const video = document.getElementById("video");
+const status = document.getElementById("status");
+
+botao.addEventListener("click", async function () {
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: "environment"
+                    }
+                },
+                audio: false
+            });
+
+        video.srcObject = stream;
+
+        status.textContent =
+            "✓ Câmera funcionando.";
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        status.textContent =
+            "Não foi possível acessar a câmera.";
+
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>
