@@ -5,18 +5,15 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Controle de Frequência</title>
 
     <!-- Biblioteca para leitura de QR Code -->
-    <script src="https://unpkg.com/html5-qrcode"
-            type="text/javascript">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript">
     </script>
 
     <style>
-
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -69,155 +66,201 @@
             background: #f8d7da;
             color: #721c24;
         }
-
     </style>
 
 </head>
 
 <body>
 
-<div class="container">
+    <div class="container">
 
-    <h1>Controle de Frequência</h1>
+        <h1>Controle de Frequência</h1>
 
-    <div class="subtitulo">
-        VIII Semana de Aquicultura
+        <div class="subtitulo">
+            VIII Semana de Aquicultura
+        </div>
+
+        <div id="reader"></div>
+
+        <div id="status" class="normal">
+            Aponte a câmera para o QR Code do participante.
+        </div>
+
     </div>
 
-    <div id="reader"></div>
 
-    <div id="status" class="normal">
-        Aponte a câmera para o QR Code do participante.
-    </div>
+    <script>
 
-</div>
+        let scanner;
+        let processando = false;
 
 
-<script>
+        // Mostra mensagem na tela
+        function mostrarStatus(mensagem, classe = "normal") {
 
-let scanner;
-let processando = false;
+            const status =
+                document.getElementById("status");
 
+            status.innerHTML = mensagem;
 
-// Mostra mensagem na tela
-function mostrarStatus(mensagem, classe = "normal") {
-
-    const status =
-        document.getElementById("status");
-
-    status.innerHTML = mensagem;
-
-    status.className = classe;
-
-}
-
-
-// Quando encontrar um QR Code
-function qrCodeEncontrado(decodedText) {
-
-    if (processando) {
-        return;
-    }
-
-    processando = true;
-
-    mostrarStatus(
-        "QR Code identificado.<br>Registrando presença...",
-        "normal"
-    );
-
-
-    console.log("QR Code:", decodedText);
-
-
-    /*
-     * Os QR Codes atuais contêm uma URL do Apps Script.
-     *
-     * Exemplo:
-     *
-     * https://script.google.com/macros/s/.../exec?t=TOKEN
-     *
-     * Basta abrir essa URL.
-     */
-
-
-    if (
-        decodedText.startsWith("https://script.google.com/")
-    ) {
-
-        window.location.href = decodedText;
-
-        return;
-
-    }
-
-
-    // Caso o QR Code contenha somente o Token
-
-    mostrarStatus(
-        "<strong>QR Code inválido.</strong><br>" +
-        "Este QR Code não pertence ao sistema.",
-        "erro"
-    );
-
-    processando = false;
-
-}
-
-
-// Inicia o leitor
-function iniciarScanner() {
-
-    scanner =
-        new Html5Qrcode("reader");
-
-
-    scanner.start(
-
-        {
-            facingMode: "environment"
-        },
-
-        {
-            fps: 10,
-
-            qrbox: {
-                width: 250,
-                height: 250
-            }
-
-        },
-
-        qrCodeEncontrado,
-
-        function(errorMessage) {
-
-            // Erros normais de leitura são ignorados.
+            status.className = classe;
 
         }
 
-    ).catch(function(error) {
 
-        console.error(error);
+        // Quando encontrar um QR Code
+        function qrCodeEncontrado(decodedText) {
 
-        mostrarStatus(
-            "<strong>Erro ao iniciar a câmera.</strong><br>" +
-            "Verifique a permissão de câmera.",
-            "erro"
+            if (processando) {
+                return;
+            }
+
+            processando = true;
+
+            mostrarStatus(
+                "QR Code identificado.<br>Registrando presença...",
+                "normal"
+            );
+
+
+            console.log("QR Code:", decodedText);
+
+
+            /*
+             * Os QR Codes atuais contêm uma URL do Apps Script.
+             *
+             * Exemplo:
+             *
+             * https://script.google.com/macros/s/.../exec?t=TOKEN
+             *
+             * Basta abrir essa URL.
+             */
+
+
+            try {
+
+                const url = new URL(decodedText);
+
+                const token =
+                    url.searchParams.get("t");
+
+                if (!token) {
+
+                    mostrarStatus(
+                        "<strong>QR Code inválido.</strong><br>" +
+                        "Token não encontrado.",
+                        "erro"
+                    );
+
+                    processando = false;
+
+                    return;
+                }
+
+
+                // Adiciona o comando para registrar presença
+
+                url.searchParams.set(
+                    "registrar",
+                    "1"
+                );
+
+
+                mostrarStatus(
+                    "Participante identificado.<br>" +
+                    "Registrando presença...",
+                    "normal"
+                );
+
+
+                // Abre o Apps Script já no modo de registro
+
+                window.location.href =
+                    url.toString();
+
+                return;
+
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                mostrarStatus(
+                    "<strong>QR Code inválido.</strong>",
+                    "erro"
+                );
+
+                processando = false;
+
+            }
+
+
+            // Caso o QR Code contenha somente o Token
+
+            mostrarStatus(
+                "<strong>QR Code inválido.</strong><br>" +
+                "Este QR Code não pertence ao sistema.",
+                "erro"
+            );
+
+            processando = false;
+
+        }
+
+
+        // Inicia o leitor
+        function iniciarScanner() {
+
+            scanner =
+                new Html5Qrcode("reader");
+
+
+            scanner.start(
+
+                {
+                    facingMode: "environment"
+                },
+
+                {
+                    fps: 10,
+
+                    qrbox: {
+                        width: 250,
+                        height: 250
+                    }
+
+                },
+
+                qrCodeEncontrado,
+
+                function (errorMessage) {
+
+                    // Erros normais de leitura são ignorados.
+
+                }
+
+            ).catch(function (error) {
+
+                console.error(error);
+
+                mostrarStatus(
+                    "<strong>Erro ao iniciar a câmera.</strong><br>" +
+                    "Verifique a permissão de câmera.",
+                    "erro"
+                );
+
+            });
+
+        }
+
+
+        // Inicia automaticamente
+        window.addEventListener(
+            "load",
+            iniciarScanner
         );
 
-    });
-
-}
-
-
-// Inicia automaticamente
-window.addEventListener(
-    "load",
-    iniciarScanner
-);
-
-</script>
+    </script>
 
 </body>
 
