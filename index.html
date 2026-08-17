@@ -127,368 +127,125 @@
 
     <script>
 
-        let scanner = null;
+        let ultimoEstado = "";
 
-        let processando = false;
+        function atualizarPainel(dados) {
 
-        let totalPresencas = 0;
+            const estado = JSON.stringify(dados);
 
-
-        // =====================================================
-        // MOSTRAR RESULTADO
-        // =====================================================
-
-        function mostrarResultado(
-            mensagem,
-            classe = "normal"
-        ) {
-
-            const elemento =
-                document.getElementById("resultado");
-
-            elemento.innerHTML = mensagem;
-
-            elemento.className = classe;
-
-        }
-
-
-        // =====================================================
-        // ATUALIZAR CONTADOR
-        // =====================================================
-
-        function atualizarContador() {
-
-            document.getElementById("contador")
-                .innerText =
-                "Presenças nesta sessão: " +
-                totalPresencas;
-
-        }
-
-
-        // =====================================================
-        // PROCESSAR QR CODE
-        // =====================================================
-
-        async function processarQRCode(decodedText) {
-
-            if (processando) {
+            // Não redesenha a tela se nada mudou
+            if (estado === ultimoEstado) {
                 return;
             }
 
-            processando = true;
+            ultimoEstado = estado;
 
-            try {
+            const status =
+                document.getElementById("status");
 
-                await scanner.pause(true);
+            const nome =
+                document.getElementById("nome");
 
-            } catch (erro) {
+            const id =
+                document.getElementById("id");
 
-                console.log("Scanner já pausado.");
+            const atividade =
+                document.getElementById("atividade");
+
+            const horario =
+                document.getElementById("horario");
+
+
+            nome.innerText =
+                dados.nome || "";
+
+            id.innerText =
+                dados.id || "";
+
+            atividade.innerText =
+                dados.atividade || "";
+
+            horario.innerText =
+                dados.dataHora || "";
+
+
+            if (dados.status === "SUCESSO") {
+
+                status.innerText =
+                    "✓ PRESENÇA REGISTRADA";
+
+                status.className =
+                    "status sucesso";
 
             }
 
+            else if (dados.status === "DUPLICADO") {
 
-            mostrarResultado(
-                "QR Code identificado.<br>" +
-                "Registrando presença...",
-                "normal"
-            );
+                status.innerText =
+                    "⚠ PRESENÇA JÁ REGISTRADA";
+
+                status.className =
+                    "status duplicado";
+
+            }
+
+            else if (dados.status === "ERRO") {
+
+                status.innerText =
+                    "✕ QR CODE INVÁLIDO";
+
+                status.className =
+                    "status erro";
+
+            }
+
+            else {
+
+                status.innerText =
+                    "AGUARDANDO PARTICIPANTE";
+
+                status.className =
+                    "status aguardando";
+
+            }
+
+        }
 
 
-            try {
+        function consultarPainel() {
 
-                const url = new URL(decodedText);
+            google.script.run
 
-                const token = url.searchParams.get("t");
+                .withSuccessHandler(function (dados) {
 
-
-                if (!token) {
-
-                    mostrarResultado(
-                        "<strong>QR Code inválido.</strong><br>" +
-                        "Token não encontrado.",
-                        "erro"
+                    console.log(
+                        "Painel recebido:",
+                        dados
                     );
 
-                    finalizarLeitura();
+                    atualizarPainel(dados);
 
-                    return;
-                }
+                })
 
+                .withFailureHandler(function (erro) {
 
-                /*
-                 * O QR Code já contém a URL do Apps Script.
-                 *
-                 * Acrescenta registrar=1 para informar
-                 * ao Apps Script que deve registrar a presença.
-                 */
+                    console.error(
+                        "Erro ao consultar painel:",
+                        erro
+                    );
 
-                url.searchParams.set(
-                    "registrar",
-                    "1"
-                );
+                })
 
-
-                /*
-                 * Envia a requisição sem tentar ler a resposta.
-                 *
-                 * no-cors evita o bloqueio CORS entre
-                 * GitHub Pages e Google Apps Script.
-                 *
-                 * A requisição é silenciosa:
-                 * a página do scanner permanece aberta.
-                 */
-
-                await fetch(
-                    url.toString(),
-                    {
-                        method: "GET",
-                        mode: "no-cors",
-                        redirect: "follow"
-                    }
-                );
-
-
-                /*
-                 * Como o navegador não permite ler a resposta
-                 * cross-origin, a interface assume que a requisição
-                 * foi enviada ao Apps Script.
-                 */
-
-                totalPresencas++;
-
-                atualizarContador();
-
-
-                mostrarResultado(
-                    "<strong>✓ PRESENÇA ENVIADA</strong><br><br>" +
-                    "O registro foi enviado ao sistema.",
-                    "sucesso"
-                );
-
-
-            } catch (erro) {
-
-                console.error(erro);
-
-
-                mostrarResultado(
-                    "<strong>Erro ao enviar registro.</strong><br>" +
-                    "Verifique a conexão com a internet.",
-                    "erro"
-                );
-
-            }
-
-
-            /*
-             * Aguarda 2 segundos e volta a procurar
-             * o próximo QR Code.
-             */
-
-            setTimeout(
-                finalizarLeitura,
-                2000
-            );
+                .obterPainel();
 
         }
 
 
-        // =====================================================
-        // EXTRAI CONTEÚDO DA RESPOSTA
-        // =====================================================
-
-        function extrairConteudoResultado(html) {
-
-            const parser =
-                new DOMParser();
-
-            const documento =
-                parser.parseFromString(
-                    html,
-                    "text/html"
-                );
-
-
-            const box =
-                documento.querySelector(".box");
-
-
-            if (box) {
-
-                return box.innerHTML;
-
-            }
-
-
-            const body =
-                documento.body;
-
-
-            if (body) {
-
-                return body.innerHTML;
-
-            }
-
-
-            return html;
-
-        }
-
-
-        // =====================================================
-        // FINALIZA LEITURA
-        // =====================================================
-
-        async function finalizarLeitura() {
-
-            processando = false;
-
-
-            mostrarResultado(
-                "Aponte a câmera para o próximo participante.",
-                "normal"
-            );
-
-
-            try {
-
-                await scanner.resume();
-
-            } catch (erro) {
-
-                console.log(
-                    "Erro ao retomar scanner:",
-                    erro
-                );
-
-            }
-
-        }
-
-
-        // =====================================================
-        // INICIAR SCANNER
-        // =====================================================
-
-        function iniciarScanner() {
-
-            scanner =
-                new Html5Qrcode("reader");
-
-
-            scanner.start(
-
-                {
-                    facingMode: "environment"
-                },
-
-                {
-                    fps: 10,
-
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    }
-
-                },
-
-                processarQRCode,
-
-                function (errorMessage) {
-
-                    // Erros normais de leitura são ignorados.
-
-                }
-
-            ).catch(function (erro) {
-
-                console.error(erro);
-
-
-                mostrarResultado(
-                    "<strong>Não foi possível iniciar a câmera.</strong><br>" +
-                    "Verifique a permissão de câmera.",
-                    "erro"
-                );
-
-            });
-
-        }
-
-
-        // =====================================================
-        // CARREGAR ATIVIDADE
-        // =====================================================
-
-        function carregarAtividade() {
-
-            /*
-             * Por enquanto, a atividade continua sendo
-             * definida em Configuracao!B2.
-             *
-             * Uma interface para alterar a atividade
-             * será criada posteriormente.
-             */
-
-            const URL_WEB_APP =
-                "https://script.google.com/macros/s/AKfycbxvSpeeFKq6Y7aygyqykuxwwZZGXD9c6EpQeHf-ApJT7BH4r626cGa1CviIgWauwlsg/exec";
-
-
-            fetch(
-                URL_WEB_APP +
-                "?atividade=1"
-            )
-
-                .then(
-                    resposta => resposta.text()
-                )
-
-                .then(
-                    texto => {
-
-                        /*
-                         * Por enquanto, não depende desse retorno.
-                         * A atividade configurada será exibida
-                         * posteriormente por uma API específica.
-                         */
-
-                        document.getElementById(
-                            "atividade"
-                        ).innerText =
-                            "Atividade atual";
-
-                    }
-                )
-
-                .catch(
-                    function () {
-
-                        document.getElementById(
-                            "atividade"
-                        ).innerText =
-                            "Atividade atual";
-
-                    }
-                );
-
-        }
-
-
-        // =====================================================
-        // INICIALIZAÇÃO
-        // =====================================================
-
-        window.addEventListener(
-            "load",
-            function () {
-
-                iniciarScanner();
-
-            }
+        consultarPainel();
+
+        setInterval(
+            consultarPainel,
+            1000
         );
 
     </script>
