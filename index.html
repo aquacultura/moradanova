@@ -682,29 +682,30 @@
         }
 
 
+
         // =====================================================
         // VALIDAR SCANNER NO SERVIDOR
         // =====================================================
 
         function validarScanner(token) {
 
-            const nomeCallback =
+            const callbackName =
                 "receberIdentificacaoScanner";
 
 
-            // Remove callback anterior, se existir.
-            const antigo =
+            // Remover chamada anterior, caso exista
+            const scriptAnterior =
                 document.getElementById(
                     "scriptIdentificacaoScanner"
                 );
 
-            if (antigo) {
-                antigo.remove();
+            if (scriptAnterior) {
+                scriptAnterior.remove();
             }
 
 
-            // Função global que receberá a resposta JSONP.
-            window[nomeCallback] =
+            // Função que receberá a resposta do Apps Script
+            window[callbackName] =
                 function (dados) {
 
                     console.log(
@@ -725,10 +726,15 @@
                                 : "Scanner não identificado."
                         );
 
-                        return;
+                        delete window[callbackName];
 
+                        return;
                     }
 
+
+                    // =============================================
+                    // IDENTIFICAÇÃO DO RESPONSÁVEL
+                    // =============================================
 
                     scannerToken =
                         token;
@@ -781,16 +787,23 @@
                         "none";
 
 
+                    // =============================================
+                    // LIBERAR CÂMERA
+                    // =============================================
+
                     carregarAtividade();
 
                     iniciarScanner();
 
 
-                    // Limpeza.
-                    delete window[nomeCallback];
+                    delete window[callbackName];
 
                 };
 
+
+            // =============================================
+            // CRIAR JSONP
+            // =============================================
 
             const script =
                 document.createElement(
@@ -808,14 +821,14 @@
                 "&t=" +
                 encodeURIComponent(token) +
                 "&callback=" +
-                encodeURIComponent(nomeCallback);
+                encodeURIComponent(callbackName);
 
 
             script.onerror =
                 function () {
 
                     console.error(
-                        "Erro ao consultar identificação do scanner."
+                        "Erro ao consultar Apps Script."
                     );
 
 
@@ -825,7 +838,7 @@
                     );
 
 
-                    delete window[nomeCallback];
+                    delete window[callbackName];
 
                 };
 
