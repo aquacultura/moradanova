@@ -5,19 +5,15 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Scanner - VIII Semana de Aquicultura</title>
 
-    <script
-        src="https://unpkg.com/html5-qrcode"
-        type="text/javascript">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript">
     </script>
 
 
     <style>
-
         * {
             box-sizing: border-box;
         }
@@ -58,8 +54,7 @@
             border-radius: 16px;
 
             box-shadow:
-                0 8px 25px
-                rgba(0,0,0,.10);
+                0 8px 25px rgba(0, 0, 0, .10);
 
         }
 
@@ -106,8 +101,7 @@
                 #f5f9fc;
 
             border:
-                1px solid
-                #dce7ee;
+                1px solid #dce7ee;
 
         }
 
@@ -151,8 +145,7 @@
                 12px;
 
             border:
-                1px solid
-                #c8d6df;
+                1px solid #c8d6df;
 
             border-radius:
                 8px;
@@ -227,8 +220,7 @@
                 #e8f7ed;
 
             border:
-                1px solid
-                #bfe3c9;
+                1px solid #bfe3c9;
 
             color:
                 #176b36;
@@ -377,7 +369,6 @@
                 #6e7d88;
 
         }
-
     </style>
 
 </head>
@@ -386,791 +377,667 @@
 <body>
 
 
-<div class="container">
+    <div class="container">
 
 
-    <h1>
-        Controle de Frequência
-    </h1>
+        <h1>
+            Controle de Frequência
+        </h1>
 
 
-    <div class="evento">
-        VIII Semana de Aquicultura
-    </div>
+        <div class="evento">
+            VIII Semana de Aquicultura
+        </div>
 
 
-    <!-- =====================================================
+        <!-- =====================================================
          IDENTIFICAÇÃO DO SCANNER
          ===================================================== -->
 
-    <div
-        id="secaoIdentificacao"
-        class="secao">
+        <div id="secaoIdentificacao" class="secao">
 
-        <h2>
-            Identificação do responsável
-        </h2>
+            <h2>
+                Identificação do responsável
+            </h2>
 
 
-        <div class="instrucao">
+            <div class="instrucao">
 
-            Antes de iniciar a leitura dos QR Codes,
-            envie uma imagem do seu próprio QR Code.
-            Ele será utilizado para identificar quem
-            está realizando os registros de frequência.
+                Antes de iniciar a leitura dos QR Codes,
+                envie uma imagem do seu próprio QR Code.
+                Ele será utilizado para identificar quem
+                está realizando os registros de frequência.
 
-        </div>
-
-
-        <input
-            id="qrScannerArquivo"
-            type="file"
-            accept="image/*"
-        >
-
-
-        <button
-            id="btnIdentificar"
-            onclick="identificarScanner()">
-
-            Identificar responsável
-
-        </button>
-
-
-        <div
-            id="resultadoIdentificacao"
-            class="mensagem">
-        </div>
-
-
-        <div
-            id="identificado"
-            class="identificado">
-
-            <div class="nome"
-                 id="nomeScanner">
             </div>
 
-            <div id="idScanner">
+
+            <input id="qrScannerArquivo" type="file" accept="image/*">
+
+
+            <button id="btnIdentificar" onclick="identificarScanner()">
+
+                Identificar responsável
+
+            </button>
+
+
+            <div id="resultadoIdentificacao" class="mensagem">
             </div>
+
+
+            <div id="identificado" class="identificado">
+
+                <div class="nome" id="nomeScanner">
+                </div>
+
+                <div id="idScanner">
+                </div>
+
+            </div>
+
 
         </div>
 
 
-    </div>
-
-
-    <!-- =====================================================
+        <!-- =====================================================
          SCANNER
          ===================================================== -->
 
-    <div
-        id="areaScanner"
-        style="display:none;">
+        <div id="areaScanner" style="display:none;">
 
 
-        <div
-            id="atividade"
-            class="atividade">
+            <div id="atividade" class="atividade">
 
-            Atividade atual
+                Atividade atual
+
+            </div>
+
+
+            <div id="reader"></div>
+
+
+            <div id="resultado" class="normal">
+
+                Aponte a câmera para o QR Code do participante.
+
+            </div>
+
+
+            <div id="contador" class="contador">
+
+                Presenças enviadas nesta sessão: 0
+
+            </div>
+
+
+            <button class="botao-reset" onclick="trocarResponsavel()">
+
+                Trocar responsável pelo scanner
+
+            </button>
+
 
         </div>
-
-
-        <div id="reader"></div>
-
-
-        <div
-            id="resultado"
-            class="normal">
-
-            Aponte a câmera para o QR Code do participante.
-
-        </div>
-
-
-        <div
-            id="contador"
-            class="contador">
-
-            Presenças enviadas nesta sessão: 0
-
-        </div>
-
-
-        <button
-            class="botao-reset"
-            onclick="trocarResponsavel()">
-
-            Trocar responsável pelo scanner
-
-        </button>
 
 
     </div>
 
 
-</div>
+    <script>
 
 
-<script>
+        // =====================================================
+        // ESTADO
+        // =====================================================
+
+        let scanner = null;
+
+        let processando = false;
+
+        let totalPresencas = 0;
+
+        let scannerToken = null;
+
+        let scannerId = null;
+
+        let scannerNome = null;
 
 
-    // =====================================================
-    // ESTADO
-    // =====================================================
+        // =====================================================
+        // URL DO WEB APP
+        // =====================================================
 
-    let scanner = null;
-
-    let processando = false;
-
-    let totalPresencas = 0;
-
-    let scannerToken = null;
-
-    let scannerId = null;
-
-    let scannerNome = null;
+        const URL_WEB_APP =
+            "https://script.google.com/macros/s/AKfycbzyfDfiLtygh2vNOWay-sWpU_18NW5Rhd2hrA7Yhn6hJD3_O2ctbIRL6tO0Tg_Hb2BP/exec";
 
 
-    // =====================================================
-    // URL DO WEB APP
-    // =====================================================
+        // =====================================================
+        // MOSTRAR MENSAGEM
+        // =====================================================
 
-    const URL_WEB_APP =
-        "https://script.google.com/macros/s/AKfycbzyfDfiLtygh2vNOWay-sWpU_18NW5Rhd2hrA7Yhn6hJD3_O2ctbIRL6tO0Tg_Hb2BP/exec";
+        function mostrarResultado(
+            mensagem,
+            classe = "normal"
+        ) {
 
+            const elemento =
+                document.getElementById(
+                    "resultado"
+                );
 
-    // =====================================================
-    // MOSTRAR MENSAGEM
-    // =====================================================
+            elemento.innerHTML =
+                mensagem;
 
-    function mostrarResultado(
-        mensagem,
-        classe = "normal"
-    ) {
-
-        const elemento =
-            document.getElementById(
-                "resultado"
-            );
-
-        elemento.innerHTML =
-            mensagem;
-
-        elemento.className =
-            classe;
-
-    }
-
-
-    // =====================================================
-    // IDENTIFICAÇÃO
-    // =====================================================
-
-    async function identificarScanner() {
-
-        const arquivo =
-            document
-                .getElementById(
-                    "qrScannerArquivo"
-                )
-                .files[0];
-
-
-        if (!arquivo) {
-
-            alert(
-                "Selecione a imagem do seu QR Code."
-            );
-
-            return;
+            elemento.className =
+                classe;
 
         }
 
 
-        const botao =
-            document.getElementById(
-                "btnIdentificar"
-            );
+        // =====================================================
+        // IDENTIFICAÇÃO
+        // =====================================================
+
+        async function identificarScanner() {
+
+            const arquivo =
+                document
+                    .getElementById(
+                        "qrScannerArquivo"
+                    )
+                    .files[0];
 
 
-        botao.disabled =
-            true;
+            if (!arquivo) {
 
-        botao.innerText =
-            "Lendo QR Code...";
+                alert(
+                    "Selecione a imagem do seu QR Code."
+                );
+
+                return;
+
+            }
 
 
-        try {
+            const botao =
+                document.getElementById(
+                    "btnIdentificar"
+                );
 
-            const scannerArquivo =
+
+            botao.disabled =
+                true;
+
+            botao.innerText =
+                "Lendo QR Code...";
+
+
+            try {
+
+                const scannerArquivo =
+                    new Html5Qrcode(
+                        "readerArquivoTemporario"
+                    );
+
+            } catch (erro) {
+
+                // O elemento temporário é criado abaixo.
+
+            }
+
+
+            // Elemento temporário para leitura do arquivo.
+
+            let temporario =
+                document.getElementById(
+                    "readerArquivoTemporario"
+                );
+
+
+            if (!temporario) {
+
+                temporario =
+                    document.createElement(
+                        "div"
+                    );
+
+                temporario.id =
+                    "readerArquivoTemporario";
+
+                temporario.style.display =
+                    "none";
+
+                document.body.appendChild(
+                    temporario
+                );
+
+            }
+
+
+            const leitor =
                 new Html5Qrcode(
                     "readerArquivoTemporario"
                 );
 
-        } catch (erro) {
 
-            // O elemento temporário é criado abaixo.
+            try {
 
-        }
-
-
-        // Elemento temporário para leitura do arquivo.
-
-        let temporario =
-            document.getElementById(
-                "readerArquivoTemporario"
-            );
+                const resultado =
+                    await leitor.scanFile(
+                        arquivo,
+                        true
+                    );
 
 
-        if (!temporario) {
-
-            temporario =
-                document.createElement(
-                    "div"
-                );
-
-            temporario.id =
-                "readerArquivoTemporario";
-
-            temporario.style.display =
-                "none";
-
-            document.body.appendChild(
-                temporario
-            );
-
-        }
+                await leitor.clear();
 
 
-        const leitor =
-            new Html5Qrcode(
-                "readerArquivoTemporario"
-            );
+                const url =
+                    new URL(
+                        resultado
+                    );
 
 
-        try {
-
-            const resultado =
-                await leitor.scanFile(
-                    arquivo,
-                    true
-                );
+                const token =
+                    url.searchParams.get(
+                        "t"
+                    );
 
 
-            await leitor.clear();
-
-
-            const url =
-                new URL(
-                    resultado
-                );
-
-
-            const token =
-                url.searchParams.get(
-                    "t"
-                );
-
-
-            if (!token) {
-
-                throw new Error(
-                    "QR Code sem token."
-                );
-
-            }
-
-
-            validarScanner(
-                token
-            );
-
-
-        } catch (erro) {
-
-            console.error(
-                erro
-            );
-
-
-            botao.disabled =
-                false;
-
-            botao.innerText =
-                "Identificar responsável";
-
-
-            alert(
-                "Não foi possível identificar o QR Code. " +
-                "Envie uma imagem válida do seu QR Code."
-            );
-
-        }
-
-    }
-
-
-    // =====================================================
-    // VALIDAR SCANNER NO SERVIDOR
-    // =====================================================
-
-    function validarScanner(
-        token
-    ) {
-
-        fetch(
-
-            URL_WEB_APP +
-            "?identificarScanner=1" +
-            "&t=" +
-            encodeURIComponent(
-                token
-            ),
-
-            {
-                method:
-                    "GET",
-
-                mode:
-                    "cors",
-
-                redirect:
-                    "follow"
-
-            }
-
-        )
-
-        .then(
-            resposta =>
-                resposta.json()
-        )
-
-        .then(
-            function(dados) {
-
-                if (
-                    !dados ||
-                    !dados.sucesso
-                ) {
+                if (!token) {
 
                     throw new Error(
-                        dados &&
-                        dados.mensagem
-                            ? dados.mensagem
-                            : "Scanner não identificado."
+                        "QR Code sem token."
                     );
 
                 }
 
 
-                scannerToken =
-                    token;
-
-                scannerId =
-                    dados.id;
-
-                scannerNome =
-                    dados.nome;
+                validarScanner(
+                    token
+                );
 
 
-                document
-                    .getElementById(
-                        "nomeScanner"
-                    )
-                    .innerText =
-                    dados.nome;
-
-
-                document
-                    .getElementById(
-                        "idScanner"
-                    )
-                    .innerText =
-                    "ID: " +
-                    dados.id;
-
-
-                document
-                    .getElementById(
-                        "identificado"
-                    )
-                    .style.display =
-                    "block";
-
-
-                document
-                    .getElementById(
-                        "areaScanner"
-                    )
-                    .style.display =
-                    "block";
-
-
-                document
-                    .getElementById(
-                        "secaoIdentificacao"
-                    )
-                    .style.display =
-                    "none";
-
-
-                carregarAtividade();
-
-                iniciarScanner();
-
-            }
-        )
-
-        .catch(
-            function(erro) {
+            } catch (erro) {
 
                 console.error(
                     erro
                 );
 
 
-                document
-                    .getElementById(
-                        "btnIdentificar"
-                    )
-                    .disabled =
+                botao.disabled =
                     false;
 
-
-                document
-                    .getElementById(
-                        "btnIdentificar"
-                    )
-                    .innerText =
+                botao.innerText =
                     "Identificar responsável";
 
 
                 alert(
-                    "Não foi possível validar seu QR Code."
+                    "Não foi possível identificar o QR Code. " +
+                    "Envie uma imagem válida do seu QR Code."
                 );
 
             }
-        );
 
-    }
+        }
 
 
-    // =====================================================
-    // ATIVIDADE
-    // =====================================================
+        // =====================================================
+        // VALIDAR SCANNER NO SERVIDOR
+        // =====================================================
 
-    function carregarAtividade() {
+        function validarScanner(token) {
 
-        fetch(
-            URL_WEB_APP +
-            "?atividade=1"
-        )
+            const nomeCallback =
+                "receberIdentificacaoScanner";
 
-        .then(
-            resposta =>
-                resposta.text()
-        )
 
-        .then(
-            function(texto) {
+            // Remove callback anterior, se existir.
+            const antigo =
+                document.getElementById(
+                    "scriptIdentificacaoScanner"
+                );
 
-                /*
-                 * A página atual usa B2 diretamente no servidor.
-                 * Aqui apenas mantemos o indicador genérico.
-                 */
-
-                document
-                    .getElementById(
-                        "atividade"
-                    )
-                    .innerText =
-                    "Atividade atual";
-
+            if (antigo) {
+                antigo.remove();
             }
-        )
-
-        .catch(
-            function() {
-
-                document
-                    .getElementById(
-                        "atividade"
-                    )
-                    .innerText =
-                    "Atividade atual";
-
-            }
-        );
-
-    }
 
 
-    // =====================================================
-    // CONTADOR
-    // =====================================================
+            // Função global que receberá a resposta JSONP.
+            window[nomeCallback] =
+                function (dados) {
 
-    function atualizarContador() {
+                    console.log(
+                        "Identificação recebida:",
+                        dados
+                    );
 
-        document
-            .getElementById(
-                "contador"
+
+                    if (
+                        !dados ||
+                        !dados.sucesso
+                    ) {
+
+                        mostrarErroIdentificacao(
+                            dados &&
+                                dados.mensagem
+                                ? dados.mensagem
+                                : "Scanner não identificado."
+                        );
+
+                        return;
+
+                    }
+
+
+                    scannerToken =
+                        token;
+
+                    scannerId =
+                        dados.id;
+
+                    scannerNome =
+                        dados.nome;
+
+
+                    document
+                        .getElementById(
+                            "nomeScanner"
+                        )
+                        .innerText =
+                        dados.nome;
+
+
+                    document
+                        .getElementById(
+                            "idScanner"
+                        )
+                        .innerText =
+                        "ID: " +
+                        dados.id;
+
+
+                    document
+                        .getElementById(
+                            "identificado"
+                        )
+                        .style.display =
+                        "block";
+
+
+                    document
+                        .getElementById(
+                            "areaScanner"
+                        )
+                        .style.display =
+                        "block";
+
+
+                    document
+                        .getElementById(
+                            "secaoIdentificacao"
+                        )
+                        .style.display =
+                        "none";
+
+
+                    carregarAtividade();
+
+                    iniciarScanner();
+
+
+                    // Limpeza.
+                    delete window[nomeCallback];
+
+                };
+
+
+            const script =
+                document.createElement(
+                    "script"
+                );
+
+
+            script.id =
+                "scriptIdentificacaoScanner";
+
+
+            script.src =
+                URL_WEB_APP +
+                "?identificarScanner=1" +
+                "&t=" +
+                encodeURIComponent(token) +
+                "&callback=" +
+                encodeURIComponent(nomeCallback);
+
+
+            script.onerror =
+                function () {
+
+                    console.error(
+                        "Erro ao consultar identificação do scanner."
+                    );
+
+
+                    mostrarErroIdentificacao(
+                        "Não foi possível validar seu QR Code. " +
+                        "Verifique a conexão com a internet."
+                    );
+
+
+                    delete window[nomeCallback];
+
+                };
+
+
+            document
+                .body
+                .appendChild(
+                    script
+                );
+
+        }
+
+        // =====================================================
+        // ATIVIDADE
+        // =====================================================
+
+        function carregarAtividade() {
+
+            fetch(
+                URL_WEB_APP +
+                "?atividade=1"
             )
-            .innerText =
-            "Presenças enviadas nesta sessão: " +
-            totalPresencas;
 
-    }
+                .then(
+                    resposta =>
+                        resposta.text()
+                )
+
+                .then(
+                    function (texto) {
+
+                        /*
+                         * A página atual usa B2 diretamente no servidor.
+                         * Aqui apenas mantemos o indicador genérico.
+                         */
+
+                        document
+                            .getElementById(
+                                "atividade"
+                            )
+                            .innerText =
+                            "Atividade atual";
+
+                    }
+                )
+
+                .catch(
+                    function () {
+
+                        document
+                            .getElementById(
+                                "atividade"
+                            )
+                            .innerText =
+                            "Atividade atual";
+
+                    }
+                );
+
+        }
 
 
-    // =====================================================
-    // PROCESSAR PARTICIPANTE
-    // =====================================================
+        // =====================================================
+        // CONTADOR
+        // =====================================================
 
-    async function processarQRCode(
-        decodedText
-    ) {
+        function atualizarContador() {
 
-        if (
-            processando
+            document
+                .getElementById(
+                    "contador"
+                )
+                .innerText =
+                "Presenças enviadas nesta sessão: " +
+                totalPresencas;
+
+        }
+
+
+        // =====================================================
+        // PROCESSAR PARTICIPANTE
+        // =====================================================
+
+        async function processarQRCode(
+            decodedText
         ) {
 
-            return;
+            if (
+                processando
+            ) {
 
-        }
+                return;
 
-
-        processando =
-            true;
-
-
-        try {
-
-            await scanner.pause(
-                true
-            );
-
-        } catch (erro) {
-
-            console.log(
-                "Scanner já pausado."
-            );
-
-        }
+            }
 
 
-        mostrarResultado(
-
-            "QR Code identificado.<br>" +
-            "Registrando presença...",
-
-            "normal"
-
-        );
+            processando =
+                true;
 
 
-        try {
+            try {
 
-            const url =
-                new URL(
-                    decodedText
+                await scanner.pause(
+                    true
                 );
 
+            } catch (erro) {
 
-            const token =
-                url.searchParams.get(
-                    "t"
-                );
-
-
-            if (!token) {
-
-                throw new Error(
-                    "Token não encontrado."
+                console.log(
+                    "Scanner já pausado."
                 );
 
             }
 
 
-            /*
-             * O token do responsável acompanha
-             * o registro do participante.
-             */
+            mostrarResultado(
 
-            const endpoint =
-                URL_WEB_APP +
-                "?t=" +
-                encodeURIComponent(
-                    token
-                ) +
-                "&registrar=1" +
-                "&scannerToken=" +
-                encodeURIComponent(
-                    scannerToken
+                "QR Code identificado.<br>" +
+                "Registrando presença...",
+
+                "normal"
+
+            );
+
+
+            try {
+
+                const url =
+                    new URL(
+                        decodedText
+                    );
+
+
+                const token =
+                    url.searchParams.get(
+                        "t"
+                    );
+
+
+                if (!token) {
+
+                    throw new Error(
+                        "Token não encontrado."
+                    );
+
+                }
+
+
+                /*
+                 * O token do responsável acompanha
+                 * o registro do participante.
+                 */
+
+                const endpoint =
+                    URL_WEB_APP +
+                    "?t=" +
+                    encodeURIComponent(
+                        token
+                    ) +
+                    "&registrar=1" +
+                    "&scannerToken=" +
+                    encodeURIComponent(
+                        scannerToken
+                    );
+
+
+                /*
+                 * O sistema utiliza no-cors para que o
+                 * scanner continue funcionando hospedado
+                 * no GitHub Pages.
+                 */
+
+                await fetch(
+
+                    endpoint,
+
+                    {
+                        method:
+                            "GET",
+
+                        mode:
+                            "no-cors",
+
+                        redirect:
+                            "follow"
+
+                    }
+
                 );
 
 
-            /*
-             * O sistema utiliza no-cors para que o
-             * scanner continue funcionando hospedado
-             * no GitHub Pages.
-             */
+                totalPresencas++;
 
-            await fetch(
+                atualizarContador();
 
-                endpoint,
 
-                {
-                    method:
-                        "GET",
+                mostrarResultado(
 
-                    mode:
-                        "no-cors",
+                    "<strong>✓ PRESENÇA ENVIADA</strong><br><br>" +
 
-                    redirect:
-                        "follow"
+                    "Responsável: " +
+                    scannerNome +
+                    "<br><br>" +
 
-                }
+                    "Aguarde a confirmação no monitor.",
 
-            );
+                    "sucesso"
 
+                );
 
-            totalPresencas++;
 
-            atualizarContador();
-
-
-            mostrarResultado(
-
-                "<strong>✓ PRESENÇA ENVIADA</strong><br><br>" +
-
-                "Responsável: " +
-                scannerNome +
-                "<br><br>" +
-
-                "Aguarde a confirmação no monitor.",
-
-                "sucesso"
-
-            );
-
-
-        } catch (erro) {
-
-            console.error(
-                erro
-            );
-
-
-            mostrarResultado(
-
-                "<strong>Erro ao enviar registro.</strong><br>" +
-                "Verifique a conexão.",
-
-                "erro"
-
-            );
-
-        }
-
-
-        setTimeout(
-
-            finalizarLeitura,
-
-            2000
-
-        );
-
-    }
-
-
-    // =====================================================
-    // VOLTAR AO SCANNER
-    // =====================================================
-
-    async function finalizarLeitura() {
-
-        processando =
-            false;
-
-
-        mostrarResultado(
-
-            "Aponte a câmera para o próximo participante.",
-
-            "normal"
-
-        );
-
-
-        try {
-
-            await scanner.resume();
-
-        } catch (erro) {
-
-            console.error(
-                erro
-            );
-
-        }
-
-    }
-
-
-    // =====================================================
-    // INICIAR CÂMERA
-    // =====================================================
-
-    function iniciarScanner() {
-
-        scanner =
-            new Html5Qrcode(
-                "reader"
-            );
-
-
-        scanner.start(
-
-            {
-                facingMode:
-                    "environment"
-            },
-
-            {
-
-                fps:
-                    10,
-
-                qrbox: {
-
-                    width:
-                        250,
-
-                    height:
-                        250
-
-                }
-
-            },
-
-            processarQRCode,
-
-            function() {
-
-                // Erros normais de leitura ignorados.
-
-            }
-
-        )
-
-        .catch(
-            function(erro) {
+            } catch (erro) {
 
                 console.error(
                     erro
@@ -1179,36 +1046,94 @@
 
                 mostrarResultado(
 
-                    "<strong>Não foi possível iniciar a câmera.</strong><br>" +
-                    "Verifique a permissão da câmera.",
+                    "<strong>Erro ao enviar registro.</strong><br>" +
+                    "Verifique a conexão.",
 
                     "erro"
 
                 );
 
             }
-        );
-
-    }
 
 
-    // =====================================================
-    // TROCAR RESPONSÁVEL
-    // =====================================================
+            setTimeout(
 
-    async function trocarResponsavel() {
+                finalizarLeitura,
 
-        if (
-            scanner
+                2000
+
+            );
+
+        }
+
+        // =====================================================
+        // ERRO DE IDENTIFICAÇÃO
+        // =====================================================    
+
+        function mostrarErroIdentificacao(
+            mensagem
         ) {
+
+            const elemento =
+                document.getElementById(
+                    "resultadoIdentificacao"
+                );
+
+
+            elemento.innerText =
+                mensagem;
+
+
+            elemento.className =
+                "mensagem erro";
+
+
+            elemento.style.display =
+                "block";
+
+
+            const botao =
+                document.getElementById(
+                    "btnIdentificar"
+                );
+
+
+            botao.disabled =
+                false;
+
+
+            botao.innerText =
+                "Identificar responsável";
+
+        }
+
+
+        // =====================================================
+        // VOLTAR AO SCANNER
+        // =====================================================
+
+        async function finalizarLeitura() {
+
+            processando =
+                false;
+
+
+            mostrarResultado(
+
+                "Aponte a câmera para o próximo participante.",
+
+                "normal"
+
+            );
+
 
             try {
 
-                await scanner.stop();
+                await scanner.resume();
 
             } catch (erro) {
 
-                console.log(
+                console.error(
                     erro
                 );
 
@@ -1217,70 +1142,164 @@
         }
 
 
-        scanner =
-            null;
+        // =====================================================
+        // INICIAR CÂMERA
+        // =====================================================
 
-        scannerToken =
-            null;
+        function iniciarScanner() {
 
-        scannerId =
-            null;
-
-        scannerNome =
-            null;
+            scanner =
+                new Html5Qrcode(
+                    "reader"
+                );
 
 
-        document
-            .getElementById(
-                "areaScanner"
+            scanner.start(
+
+                {
+                    facingMode:
+                        "environment"
+                },
+
+                {
+
+                    fps:
+                        10,
+
+                    qrbox: {
+
+                        width:
+                            250,
+
+                        height:
+                            250
+
+                    }
+
+                },
+
+                processarQRCode,
+
+                function () {
+
+                    // Erros normais de leitura ignorados.
+
+                }
+
             )
-            .style.display =
-            "none";
+
+                .catch(
+                    function (erro) {
+
+                        console.error(
+                            erro
+                        );
 
 
-        document
-            .getElementById(
-                "secaoIdentificacao"
-            )
-            .style.display =
-            "block";
+                        mostrarResultado(
+
+                            "<strong>Não foi possível iniciar a câmera.</strong><br>" +
+                            "Verifique a permissão da câmera.",
+
+                            "erro"
+
+                        );
+
+                    }
+                );
+
+        }
 
 
-        document
-            .getElementById(
-                "identificado"
-            )
-            .style.display =
-            "none";
+        // =====================================================
+        // TROCAR RESPONSÁVEL
+        // =====================================================
+
+        async function trocarResponsavel() {
+
+            if (
+                scanner
+            ) {
+
+                try {
+
+                    await scanner.stop();
+
+                } catch (erro) {
+
+                    console.log(
+                        erro
+                    );
+
+                }
+
+            }
 
 
-        document
-            .getElementById(
-                "qrScannerArquivo"
-            )
-            .value =
-            "";
+            scanner =
+                null;
+
+            scannerToken =
+                null;
+
+            scannerId =
+                null;
+
+            scannerNome =
+                null;
 
 
-        document
-            .getElementById(
-                "btnIdentificar"
-            )
-            .disabled =
-            false;
+            document
+                .getElementById(
+                    "areaScanner"
+                )
+                .style.display =
+                "none";
 
 
-        document
-            .getElementById(
-                "btnIdentificar"
-            )
-            .innerText =
-            "Identificar responsável";
-
-    }
+            document
+                .getElementById(
+                    "secaoIdentificacao"
+                )
+                .style.display =
+                "block";
 
 
-</script>
+            document
+                .getElementById(
+                    "identificado"
+                )
+                .style.display =
+                "none";
+
+
+            document
+                .getElementById(
+                    "qrScannerArquivo"
+                )
+                .value =
+                "";
+
+
+            document
+                .getElementById(
+                    "btnIdentificar"
+                )
+                .disabled =
+                false;
+
+
+            document
+                .getElementById(
+                    "btnIdentificar"
+                )
+                .innerText =
+                "Identificar responsável";
+
+        }
+
+
+    </script>
 
 
 </body>
